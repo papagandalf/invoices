@@ -2,6 +2,10 @@ invoices
 ========
 
 Generates invoices to be used according to the latest (2012-2013) tax regulations.
+Based on https://github.com/louridas/invoices, with the following changes:
+- added an archive file to store the invoice number, date and amount. This way, every invoice takes the next number from the last one.
+- added some questions to the script, so the user chooses if he/she wants to input the info while running the script, or take them from the .xml file.
+- line 299 in invoice.py calls okular to open the newly generated invoice. If you do not use okular, change it to meet your needs.
 
 Usage
 =====

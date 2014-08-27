@@ -1,5 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import with_statement
+from datetime import datetime
+from subprocess import call
 
 import codecs
 import sys
@@ -168,65 +171,110 @@ def num_to_text_billions(number):
 def num_to_text(number):
     return num_to_text_billions(number)
 
-if len(sys.argv) < 2:
-    print "Usage: python invoice.py invoice_data.xml"
-    sys.exit(1)
 
-tree = ET.parse(sys.argv[1])
-root = tree.getroot()
+action = raw_input("Do you want to see previous invoices [P] or make a new one [N]? ")
+if action == "P":
+  with open("archive", "r") as f:
+    f.seek (0, 2)           # Seek @ EOF
+    fsize = f.tell()        # Get Size
+    f.seek (max (fsize-1024, 0), 0) # Set pos @ last n chars
+    lines = f.readlines()       # Read to end
 
-num = root.find('num').text
-date = root.find('date').text
-stamp = root.find('stamp').text
-client = root.find('client').text
-occupation = root.find('occupation').text
-taxoffice = root.find('taxoffice').text
-address = root.find('address').text
-taxnumber = root.find('taxnumber').text
-description = root.find('description').text
-value_f = float(root.find('value').text)
-tax_rate_el = root.find('tax_rate')
-if tax_rate_el is not None:
-    tax_rate = tax_rate_el.text
-else:
-    tax_rate = "0.20" # default value
-tax_rate_f = float(tax_rate)
-tax_rate_prc = "{:.2f}".format(tax_rate_f * 100)
-if tax_rate_prc.endswith('.00'):
-    tax_rate_prc = tax_rate_prc.replace('.00', '')
-vat_rate_el = root.find('vat_rate')
-if vat_rate_el is not None:
-    vat_rate = vat_rate_el.text
-else:
-    vat_rate = "0.23" # default value
-vat_rate_f = float(vat_rate)
-vat_rate_prc = "{:.2f}".format(vat_rate_f * 100)
-if vat_rate_prc.endswith('.00'):
-    vat_rate_prc = vat_rate_prc.replace('.00', '')
-value = "{:.2f}".format(value_f)
-tax_f = value_f * tax_rate_f
-vat_element = root.find('vat')
-vat_f = value_f * vat_rate_f
-total_f = value_f + vat_f
-tax = "{:.2f}".format(tax_f)
-vat = "{:.2f}".format(vat_f)
-total = "{:.2f}".format(total_f) 
-(intpart, floatpart) = total.split('.')
+  tenLines = lines[-10:]    # Get last 10 lines
 
-numbertext = "{} ευρώ".format(num_to_text(int(intpart)))
+  for line in tenLines:
+    print line
+elif action == "N":
+  
+  with open("archive", "r") as f:
+    f.seek (0, 2)           # Seek @ EOF
+    fsize = f.tell()        # Get Size
+    f.seek (max (fsize-1024, 0), 0) # Set pos @ last n chars
+    lines = f.readlines()       # Read to end
 
-if floatpart != '' :
-    floatpart_i = int(floatpart)
-    if floatpart_i > 0:
-        numbertext = "{} και {} λεπτά".format(numbertext,
+  max =0;
+  for line in lines:
+    number = line.split("\t")[0]
+    if number > max:
+      max = number
+
+  print "Last invoice in archive is no {}. Creating invoice no {}...".format(str(max),str(int(max)+1))
+  
+  tree = ET.parse("invoice.xml")
+  root = tree.getroot()
+
+  num = int(max)+1
+  theDate = datetime.now()
+  date = str(theDate.day)+"/"+str(theDate.month)+"/"+str(theDate.year)
+  date = raw_input("Input the date you want the invoice to have [DD/MM/YYYY] (hit enter if you want today's date): ")
+  if date=="":
+      date = str(theDate.day)+"/"+str(theDate.month)+"/"+str(theDate.year)
+  stamp = root.find('stamp').text
+  client = root.find('client').text
+  occupation = root.find('occupation').text
+  taxoffice = root.find('taxoffice').text
+  address = root.find('address').text
+  taxnumber = root.find('taxnumber').text
+  description = root.find('description').text
+  value_f_string = raw_input("Input the net amount (hit enter if you want the amount posed in the .xml file): ")
+  if value_f_string=="": 
+    value_f = float(root.find('value').text)
+  else:
+    value_f = float(value_f_string)
+  tax_rate_el = root.find('tax_rate')
+  
+  
+  
+  print num 
+  print date
+  print client
+  confirm = raw_input("Are the above correct? [Y/n]")
+  if confirm == "Y" or confirm == "y":
+    if tax_rate_el is not None:
+      tax_rate = tax_rate_el.text
+    else:
+      tax_rate = "0.20" # default value
+    tax_rate_f = float(tax_rate)
+    tax_rate_prc = "{:.2f}".format(tax_rate_f * 100)
+    if tax_rate_prc.endswith('.00'):
+      tax_rate_prc = tax_rate_prc.replace('.00', '')
+    vat_rate_el = root.find('vat_rate')
+    if vat_rate_el is not None:
+      vat_rate = vat_rate_el.text
+    else:
+      vat_rate = "0.23" # default value
+    vat_rate_f = float(vat_rate)
+    vat_rate_prc = "{:.2f}".format(vat_rate_f * 100)
+    if vat_rate_prc.endswith('.00'):
+      vat_rate_prc = vat_rate_prc.replace('.00', '')
+    value = "{:.2f}".format(value_f)
+    tax_f = value_f * tax_rate_f
+    vat_element = root.find('vat')
+    vat_f = value_f * vat_rate_f
+    total_f = value_f + vat_f
+    tax = "{:.2f}".format(tax_f)
+    vat = "{:.2f}".format(vat_f)
+    total = "{:.2f}".format(total_f) 
+    (intpart, floatpart) = total.split('.')
+
+    numbertext = "{} ευρώ".format(num_to_text(int(intpart)))
+
+    if floatpart != '' :
+      floatpart_i = int(floatpart)
+      if floatpart_i > 0:
+	  if(num_to_text(int(floatpart))==1):
+	    numbertext = "{} και {} λεπτό".format(numbertext,
+                                              num_to_text(int(floatpart)))
+	  else:
+	    numbertext = "{} και {} λεπτά".format(numbertext,
                                               num_to_text(int(floatpart)))
 
-outfn = 'invoice_' + num + '.tex'
+    outfn = 'invoice_' + str(num) + '.tex'
   
-with codecs.open('invoice.tex', mode='r', encoding='utf-8') as inf:
-    with codecs.open(outfn, mode='w', encoding='utf-8') as outf:
-        for line in inf:
-            line = line.replace("{{NUM}}", num)
+    with codecs.open('invoice.tex', mode='r', encoding='utf-8') as inf:
+      with codecs.open(outfn, mode='w', encoding='utf-8') as outf:
+	  for line in inf:
+            line = line.replace("{{NUM}}", str(num))
             line = line.replace("{{DATE}}", date)
             line = line.replace("{{STAMP}}", stamp)
             line = line.replace("{{CLIENT}}", client)
@@ -244,4 +292,15 @@ with codecs.open('invoice.tex', mode='r', encoding='utf-8') as inf:
             line = line.replace("{{NUMBERTEXT}}",
                                 numbertext.decode('utf-8').capitalize())
             outf.write(line)
+
+    with open("archive", "a") as myfile:
+      myfile.write(str(num)+"\t"+date+"\t"+value+"\n")
+    call(["xelatex", outfn])
+    call(["okular","invoice_"+str(num)+".pdf"])
+  else:
+    print "Update info in template invoice.xml"
+else:
+  print "Wrong answer."
+  sys.exit(1)
+
 
